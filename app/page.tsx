@@ -83,6 +83,7 @@ export default function ChatInterface() {
           })),
           payload: {
             text: message.content,
+            id: message.id,
             attachments: message.attachments?.map(att => ({
               type: att.type,
               name: att.name,
