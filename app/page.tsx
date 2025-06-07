@@ -60,6 +60,56 @@ export default function ChatInterface() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
+    // Función para enviar mensajes al webhook de n8n
+  const sendToN8nWebhook = async (message: Message) => {
+    try {
+      const response = await fetch("https://neuralgeniusai.com/webhook-test/replicar-botpress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message.content,
+          sender: message.role,
+          timestamp: message.timestamp.toISOString(),
+          messageId: message.id,
+          conversationId: conversationId || 'nueva-conversacion',
+          attachments: message.attachments?.map(att => ({
+            type: att.type,
+            name: att.name,
+            url: att.url
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Error al enviar al webhook:", await response.text());
+      }
+    } catch (err) {
+      console.error("Error en la conexión con el webhook:", err);
+    }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
+  }, []);
+
+  // Efecto para enviar mensajes al webhook cuando se actualiza la lista
+  useEffect(() => {
+    // Enviar el último mensaje al webhook
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      sendToN8nWebhook(lastMessage);
+    }
+  }, [messages]);
+
   useEffect(() => {
     setMounted(true);
     return () => {
