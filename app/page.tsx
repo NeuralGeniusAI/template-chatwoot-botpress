@@ -60,35 +60,65 @@ export default function ChatInterface() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
-    // Función para enviar mensajes al webhook de n8n
-  const sendToN8nWebhook = async (message: Message) => {
-    try {
-      const response = await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: message.content,
-          sender: message.role,
+// Función para enviar mensajes al webhook de n8n con userID
+const sendToN8nWebhook = async (message: Message) => {
+  try {
+    // Obtener el userID desde donde lo tengas almacenado (localStorage, contexto, props, etc.)
+    // Esto es un ejemplo - ajusta según cómo manejes la autenticación en tu app
+    const userID = localStorage.getItem('userID') || 'unknown-user';
+    
+    const response = await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        // Datos del mensaje
+        message: {
+          content: message.content,
+          id: message.id,
           timestamp: message.timestamp.toISOString(),
-          messageId: message.id,
-          conversationId: conversationId || 'nueva-conversacion',
-          attachments: message.attachments?.map(att => ({
-            type: att.type,
-            name: att.name,
-            url: att.url
-          }))
-        }),
-      });
+          role: message.role,
+        },
+        // Datos del usuario
+        user: {
+          id: userID,  // Aquí incluimos el userID
+          phone: localStorage.getItem('userPhone') || '', // Ejemplo de otro dato útil
+          name: localStorage.getItem('userName') || 'Usuario', // Ejemplo
+        },
+        // Datos de la conversación
+        conversation: {
+          id: conversationId || 'nueva-conversacion',
+          status: 'active', // Puedes añadir más metadatos
+        },
+        // Archivos adjuntos
+        attachments: message.attachments?.map(att => ({
+          type: att.type,
+          name: att.name,
+          url: att.url,
+          mimeType: att.blob?.type || 'unknown',
+          size: att.blob?.size || 0,
+        })),
+        // Metadata adicional
+        metadata: {
+          source: 'web-chat',
+          version: '1.0',
+        }
+      }),
+    });
 
-      if (!response.ok) {
-        console.error("Error al enviar al webhook:", await response.text());
-      }
-    } catch (err) {
-      console.error("Error en la conexión con el webhook:", err);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error al enviar al webhook:", errorText);
+      throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
     }
-  };
+
+    return await response.json();
+  } catch (err) {
+    console.error("Error en la conexión con el webhook:", err);
+    throw err; // Relanzar el error para manejarlo en el llamador
+  }
+};
 
   useEffect(() => {
     setMounted(true);
