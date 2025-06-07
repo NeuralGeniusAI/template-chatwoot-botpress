@@ -80,7 +80,15 @@ export default function ChatInterface() {
             type: att.type,
             name: att.name,
             url: att.url
-          }))
+          })),
+          payload: {
+            text: message.content,
+            attachments: message.attachments?.map(att => ({
+              type: att.type,
+              name: att.name,
+              url: att.url,
+            })) || [],
+          },
         }),
       });
 
