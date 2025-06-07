@@ -150,6 +150,165 @@ export default function ChatInterface() {
     };
   }, [conversationId]);
 
+"use client";
+
+import type React from "react";
+import { useState, useRef, useEffect } from "react";
+// ... (otros imports se mantienen igual)
+
+export default function ChatInterface() {
+  // ... (otros estados se mantienen igual)
+  
+  // Función para enviar mensajes al webhook
+  const sendToWebhook = async (message: Message) => {
+    try {
+      const webhookUrl = "https://neuralgeniusai.com/webhook-test/replicar-botpress";
+      
+      const payload = {
+        conversationId: conversationId || `conv-${generateId()}`,
+        messageId: message.id,
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp.toISOString(),
+        attachments: message.attachments?.map(att => ({
+          type: att.type,
+          name: att.name,
+          url: att.url
+        })),
+        platform: "neuralgenius-ai-chat"
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        console.error("Error al enviar al webhook:", response.status);
+      }
+    } catch (err) {
+      console.error("Error en webhook:", err);
+    }
+  };
+
+  // Modificar handleSubmit para enviar mensaje del usuario
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
+
+    const userMessage: Message = {
+      role: "user",
+      content: input.trim(),
+      id: generateId(),
+      timestamp: new Date(),
+      attachments: attachments.length > 0 ? [...attachments] : undefined,
+    };
+
+    // Enviar mensaje del usuario al webhook
+    await sendToWebhook(userMessage);
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setAttachments([]);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // ... (código existente para manejar la respuesta del bot)
+
+      if (responseData.botMessage) {
+        const botMessage = responseData.botMessage;
+        const timestamp = botMessage.timestamp
+          ? new Date(botMessage.timestamp)
+          : new Date();
+
+        const assistantMessage: Message = {
+          role: "assistant",
+          content: botMessage.content,
+          id: botMessage.id || `bot-${Date.now()}`,
+          timestamp,
+          attachments: botMessage.attachments,
+        };
+
+        // Enviar respuesta del bot al webhook
+        await sendToWebhook(assistantMessage);
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error al comunicarse con la API:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error al comunicarse con el servicio"
+      );
+      setIsLoading(false);
+    }
+  };
+
+  // Modificar el efecto de polling para enviar mensajes del bot
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const fetchPendingMessages = async () => {
+      try {
+        const response = await fetch(
+          `/api/chat/poll?conversationId=${conversationId}&clear=true`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Error en la respuesta: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(async (messageData: any) => {
+            const timestamp = messageData.timestamp
+              ? new Date(messageData.timestamp)
+              : new Date();
+
+            const assistantMessage: Message = {
+              role: "assistant",
+              content: messageData.content,
+              id: messageData.id || `bot-${Date.now()}`,
+              timestamp,
+              attachments: messageData.attachments,
+            };
+
+            // Enviar respuesta del bot al webhook
+            await sendToWebhook(assistantMessage);
+
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === assistantMessage.id)) {
+                return prev;
+              }
+              return [...prev, assistantMessage];
+            });
+
+            setIsLoading(false);
+          });
+        }
+      } catch (err) {
+        console.error("Error al obtener mensajes pendientes:", err);
+      }
+    };
+
+    fetchPendingMessages();
+    pollingIntervalRef.current = setInterval(fetchPendingMessages, 2000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [conversationId]);
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -757,4 +916,6 @@ export default function ChatInterface() {
       </div>
     </div>
   );
+}
+
 }
