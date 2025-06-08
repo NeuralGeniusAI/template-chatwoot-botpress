@@ -60,6 +60,18 @@ export default function ChatInterface() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
+    // 👇 Aquí colocas el useEffect para inicializar conversationId
+  useEffect(() => {
+    let savedId = sessionStorage.getItem("conversationId");
+
+    if (!savedId) {
+      savedId = crypto.randomUUID(); // Puedes usar cualquier método para generar el ID
+      sessionStorage.setItem("conversationId", savedId);
+    }
+
+    setConversationId(savedId);
+  }, []);
+
 // Función para enviar mensajes al webhook de n8n
   const sendToN8nWebhook = async (message: Message) => {
     try {
