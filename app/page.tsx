@@ -49,15 +49,7 @@ export default function ChatInterface() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const getInitialConversationId = () => {
-    let savedId = sessionStorage.getItem("conversationId");
-    if (!savedId) {
-      savedId = crypto.randomUUID();
-      sessionStorage.setItem("conversationId", savedId);
-    }
-    return savedId;
-  };
-  const [conversationId, setConversationId] = useState<string | null>(getInitialConversationId());
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Referencias
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,8 +60,20 @@ export default function ChatInterface() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
+    // 👇 Aquí colocas el useEffect para inicializar conversationId
+  useEffect(() => {
+    let savedId = sessionStorage.getItem("conversationId");
 
-  // Función para enviar mensajes al webhook de n8n
+    if (!savedId) {
+      savedId = crypto.randomUUID(); // Puedes usar cualquier método para generar el ID
+      sessionStorage.setItem("conversationId", savedId);
+    }
+
+    setConversationId(savedId);
+    console.log("ID de conversación inicializado:", savedId);
+  }, []);
+
+// Función para enviar mensajes al webhook de n8n
   const sendToN8nWebhook = async (message: Message) => {
     try {
       console.log("Mensaje a enviar a n8n:", message)
@@ -477,7 +481,7 @@ export default function ChatInterface() {
   };
 
   // Función para manejar el envío del formulario
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
@@ -629,14 +633,16 @@ export default function ChatInterface() {
             messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex mb-4 ${message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                className={`flex mb-4 ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
               >
                 <Card
-                  className={`p-4 max-w-[80%] ${message.role === "user"
+                  className={`p-4 max-w-[80%] ${
+                    message.role === "user"
                       ? "bg-[#7824cc] text-white"
                       : "bg-gray-100 text-[#03021c]"
-                    }`}
+                  }`}
                 >
                   <div className="flex items-start space-x-3">
                     {message.role !== "user" && (
