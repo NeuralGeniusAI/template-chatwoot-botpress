@@ -57,6 +57,8 @@ async function sendToN8nWebhook(message: BotMessage) {
 export async function POST(request: NextRequest) {
   try {
     const botResponse = await request.json();
+    const isFromUser = botResponse.type === "user_message" || botResponse.role === "user";
+
 
     console.log(
       "Webhook recibido de Botpress:",
@@ -117,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     const messageData = {
-      role: "assistant",
+      role: isFromUser ? "user" : "assistant",
       content: botMessage,
       id: botResponse.botpressMessageId || botResponse.id || `bot-${Date.now()}`,
       timestamp: new Date().toISOString(),
