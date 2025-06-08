@@ -69,6 +69,7 @@ export default function ChatInterface() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          ...message,
           message: message.content,
           sender: message.role,
           timestamp: message.timestamp.toISOString(),
