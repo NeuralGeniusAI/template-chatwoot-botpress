@@ -422,18 +422,17 @@ export default function ChatInterface() {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      phone: "+5491122334455", // Teléfono del usuario
-      name: "Juan Pérez",
-      flow: "mentoria-personal-branding",
-      messages: [
-        {
-          sender: "user",
-          text: message,
-        },
-      ],
+        body: JSON.stringify({
+          message: message.content,
+          sender: message.role,
+          timestamp: message.timestamp.toISOString(),
+          messageId: message.id,
+          conversationId: conversationId || 'nueva-conversacion',
+          userAgent: navigator.userAgent,
+    }),
     }),
   });
-};
+  };
 
 
   // Función para manejar el envío del formulario
