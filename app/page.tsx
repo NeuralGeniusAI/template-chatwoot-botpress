@@ -61,6 +61,25 @@ export default function ChatInterface() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Intentar recuperar un conversationId existente
+    const existingId = sessionStorage.getItem("conversationId");
+
+    if (existingId) {
+      setConversationId(existingId);
+    } else {
+      const newId = generateId(); // usa tu función para generar IDs
+      sessionStorage.setItem("conversationId", newId);
+      setConversationId(newId);
+    }
+
+    return () => {
+      // Limpieza si lo deseas (opcional)
+      // sessionStorage.removeItem("conversationId");
+    };
+  }, []);
+
+
+  useEffect(() => {
     setMounted(true);
     return () => {
       if (mediaRecorderRef.current?.state === "recording") {
@@ -416,25 +435,25 @@ export default function ChatInterface() {
     }
   };
   const sendToWebhook = async (message: Message) => {
-  await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-          message: message.content,
-          sender: message.role,
-          timestamp: message.timestamp.toISOString(),
-          messageId: message.id,
-          conversationId: conversationId || 'nueva-conversacion',
-          userAgent: navigator.userAgent,
-    }),
-  });
+    await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: message.content,
+        sender: message.role,
+        timestamp: message.timestamp.toISOString(),
+        messageId: message.id,
+        conversationId: conversationId || 'nueva-conversacion',
+        userAgent: navigator.userAgent,
+      }),
+    });
   };
 
 
   // Función para manejar el envío del formulario
- const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
@@ -446,7 +465,7 @@ export default function ChatInterface() {
       timestamp: new Date(),
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
-     // Enviar al webhook de n8n
+    // Enviar al webhook de n8n
     await sendToWebhook(userMessage);
 
     setMessages((prev) => [...prev, userMessage]);
@@ -588,16 +607,14 @@ export default function ChatInterface() {
             messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex mb-4 ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex mb-4 ${message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
               >
                 <Card
-                  className={`p-4 max-w-[80%] ${
-                    message.role === "user"
+                  className={`p-4 max-w-[80%] ${message.role === "user"
                       ? "bg-[#7824cc] text-white"
                       : "bg-gray-100 text-[#03021c]"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start space-x-3">
                     {message.role !== "user" && (
