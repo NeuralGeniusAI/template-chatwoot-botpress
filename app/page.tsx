@@ -415,7 +415,7 @@ export default function ChatInterface() {
         );
     }
   };
-  const sendToWebhook = async (message: string) => {
+  const sendToWebhook = async (message: Message) => {
   await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
     method: "POST",
     headers: {
@@ -450,7 +450,7 @@ export default function ChatInterface() {
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
      // Enviar al webhook de n8n
-    await sendToWebhook(userMessage.content);
+    await sendToWebhook(userMessage);
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
