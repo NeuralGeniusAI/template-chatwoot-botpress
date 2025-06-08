@@ -415,6 +415,26 @@ export default function ChatInterface() {
         );
     }
   };
+  const sendToWebhook = async (message: string) => {
+  await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      phone: "+5491122334455", // Teléfono del usuario
+      name: "Juan Pérez",
+      flow: "mentoria-personal-branding",
+      messages: [
+        {
+          sender: "user",
+          text: message,
+        },
+      ],
+    }),
+  });
+};
+
 
   // Función para manejar el envío del formulario
  const handleSubmit = async (e: React.FormEvent) => {
@@ -429,6 +449,8 @@ export default function ChatInterface() {
       timestamp: new Date(),
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
+     // Enviar al webhook de n8n
+    await sendToWebhook(userMessage);
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
