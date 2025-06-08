@@ -450,7 +450,7 @@ export default function ChatInterface() {
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
      // Enviar al webhook de n8n
-    await sendToWebhook(userMessage);
+    await sendToWebhook(userMessage.content);
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
