@@ -63,6 +63,8 @@ export default function ChatInterface() {
 // Función para enviar mensajes al webhook de n8n
   const sendToN8nWebhook = async (message: Message) => {
     try {
+      console.log("Mensaje a enviar a n8n:", message)
+
       const response = await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
         method: "POST",
         headers: {
