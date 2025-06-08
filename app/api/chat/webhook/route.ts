@@ -1,7 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { storeBotMessage } from "@/lib/message-store";
 
-async function sendToN8nWebhook(message: any) {
+interface Attachment {
+  id?: string;
+  type: string;
+  name: string;
+  url: string;
+}
+
+interface BotMessage {
+  role: string;
+  content: string;
+  id: string;
+  timestamp: string;
+  conversationId: string;
+  attachments?: Attachment[];
+}
+
+async function sendToN8nWebhook(message: BotMessage) {
   try {
     console.log("Enviando mensaje a n8n:", message);
 
