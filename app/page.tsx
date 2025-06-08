@@ -422,14 +422,12 @@ export default function ChatInterface() {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-        body: JSON.stringify({
           message: message.content,
           sender: message.role,
           timestamp: message.timestamp.toISOString(),
           messageId: message.id,
           conversationId: conversationId || 'nueva-conversacion',
           userAgent: navigator.userAgent,
-    }),
     }),
   });
   };
