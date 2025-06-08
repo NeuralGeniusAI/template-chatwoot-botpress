@@ -1,6 +1,43 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { storeBotMessage } from "@/lib/message-store";
 
+async function sendToN8nWebhook(message: any) {
+  try {
+    console.log("Enviando mensaje a n8n:", message);
+
+    const response = await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...message,
+        message: message.content,
+        sender: message.role,
+        timestamp: message.timestamp,
+        messageId: message.id,
+        conversationId: message.conversationId || "nueva-conversacion",
+        userAgent: "bot-server", // o navigator.userAgent si estás en frontend
+        userId: `user-${message.id}`,
+        attachments: message.attachments?.map(att => ({
+          type: att.type,
+          name: att.name,
+          url: att.url,
+        })),
+        payload: {
+          text: message.content,
+          id: message.id,
+          attachments: message.attachments || [],
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Error al enviar al webhook:", await response.text());
+    }
+  } catch (err) {
+    console.error("Error en la conexión con el webhook:", err);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const botResponse = await request.json();
@@ -23,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extraer mensaje y attachments
+    // Procesamiento del mensaje
     let botMessage = "No se pudo extraer el mensaje";
     let attachments = [];
 
@@ -34,7 +71,6 @@ export async function POST(request: NextRequest) {
           attachments = botResponse.payload.attachments || [];
         }
         break;
-
       case "image":
         botMessage = "";
         if (botResponse.payload?.imageUrl) {
@@ -46,10 +82,8 @@ export async function POST(request: NextRequest) {
           });
         }
         break;
-
       case "file":
-        botMessage =
-          botResponse.payload?.title || "";
+        botMessage = botResponse.payload?.title || "";
         if (botResponse.payload?.fileUrl) {
           attachments.push({
             id: botResponse.botpressMessageId || `att-${Date.now()}`,
@@ -59,7 +93,6 @@ export async function POST(request: NextRequest) {
           });
         }
         break;
-
       default:
         if (botResponse.text) {
           botMessage = botResponse.text;
@@ -70,14 +103,17 @@ export async function POST(request: NextRequest) {
     const messageData = {
       role: "assistant",
       content: botMessage,
-      id:
-        botResponse.botpressMessageId || botResponse.id || `bot-${Date.now()}`,
+      id: botResponse.botpressMessageId || botResponse.id || `bot-${Date.now()}`,
       timestamp: new Date().toISOString(),
       conversationId,
       attachments,
     };
 
+    // Guardar en store local
     storeBotMessage(conversationId, messageData);
+
+    // Enviar a n8n
+    await sendToN8nWebhook(messageData);
 
     return NextResponse.json({ success: true });
   } catch (error) {
