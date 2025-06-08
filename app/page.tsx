@@ -60,62 +60,6 @@ export default function ChatInterface() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
-    // 👇 Aquí colocas el useEffect para inicializar conversationId
-  useEffect(() => {
-    let savedId = sessionStorage.getItem("conversationId");
-
-    if (!savedId) {
-      savedId = crypto.randomUUID(); // Puedes usar cualquier método para generar el ID
-      sessionStorage.setItem("conversationId", savedId);
-    }
-
-    setConversationId(savedId);
-    console.log("ID de conversación inicializado:", savedId);
-  }, []);
-
-// Función para enviar mensajes al webhook de n8n
-  const sendToN8nWebhook = async (message: Message) => {
-    try {
-      console.log("Mensaje a enviar a n8n:", message)
-
-      const response = await fetch("https://neuralgeniusai.com/webhook/replicar-botpress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...message,
-          message: message.content,
-          sender: message.role,
-          timestamp: message.timestamp.toISOString(),
-          messageId: message.id,
-          conversationId: conversationId || 'nueva-conversacion',
-          userAgent: navigator.userAgent,
-          userId: `user-${message.id}`,
-          attachments: message.attachments?.map(att => ({
-            type: att.type,
-            name: att.name,
-            url: att.url
-          })),
-          payload: {
-            text: message.content,
-            id: message.id,
-            attachments: message.attachments?.map(att => ({
-              type: att.type,
-              name: att.name,
-              url: att.url,
-            })) || [],
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("Error al enviar al webhook:", await response.text());
-      }
-    } catch (err) {
-      console.error("Error en la conexión con el webhook:", err);
-    }
-  };
   useEffect(() => {
     setMounted(true);
     return () => {
@@ -127,14 +71,6 @@ export default function ChatInterface() {
     };
   }, []);
 
-  // Efecto para enviar mensajes al webhook cuando se actualiza la lista
-  useEffect(() => {
-    // Enviar el último mensaje al webhook
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      sendToN8nWebhook(lastMessage);
-    }
-  }, [messages]);
 
   useEffect(() => {
     setMounted(true);
@@ -181,7 +117,7 @@ export default function ChatInterface() {
           );
 
           // Procesar cada mensaje recibido
-          data.messages.forEach((messageData: any) => {
+          data.messages.forEach((messageData: Message) => {
             // Convertir la fecha de string a objeto Date
             const timestamp = messageData.timestamp
               ? new Date(messageData.timestamp)
